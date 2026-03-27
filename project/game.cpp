@@ -6,14 +6,12 @@ using namespace std;
 
 Game :: Game ()
 {
-    current_player = Black;
-    status = On_Going;
+    Current_Player = Black;
+    Status = On_Going;
+    board.resize((int)Board_Size :: Large_Board);
 }
 
-Game :: ~Game ()
-{
-
-}
+Game :: ~Game () {}
 
 void Game :: clear (void)      //清除控制台
 {
@@ -28,6 +26,69 @@ void Game :: menu (void)       //游戏主菜单界面
     cout << "3. 退出游戏" << endl;
     cout << "=================================" << endl;
     cout << "请选择: ";
+}
+
+void Game :: select_boardsize (void)
+{
+    int choice;
+    cout << "请选择棋盘大小: " << endl;
+    cout << " 1.小号棋盘(11*11)\n 2.中号棋盘(13*13)\n 3.大号棋盘(15*15)\n 4.超大号棋盘(19*19)\n";
+    cout << "请输入选项: ";
+    cin >> choice;
+    while (choice != 1 && choice != 2 && choice != 3 && choice != 4)
+    {
+        cout << endl << "无效选择，请重新输入: ";
+        cin >> choice;
+    }
+    if (choice == 1)
+    {
+        BoardSize = (int)Board_Size :: Small_Board;
+    }
+    else if (choice == 2)
+    {
+        BoardSize = (int)Board_Size :: Meduim_Board;
+    }
+    else if (choice == 3)
+    {
+        BoardSize = (int)Board_Size :: Large_Board;
+    }
+    else if (choice == 4)
+    {
+        BoardSize = (int)Board_Size :: SuperLarge_Board;
+    }
+}
+
+void Game :: start_newgame (void)
+{
+    board.resize(BoardSize);      // 根据当前大小重新初始化棋盘
+    Current_Player = Black;
+    Status = On_Going;
+}
+
+void Game :: display_board (void) const
+{
+    board.display();
+}
+
+void Game :: print_prompt (void) const
+{
+    if (Status == On_Going)
+    {
+        cout << "当前玩家: " << (Current_Player == Black ? "黑棋(X)" : "白棋(O)") << endl;
+        cout << "请输入落子坐标 (行 列)，或输入 -1 -1 悔棋，或输入 -2 -2 退出游戏: ";
+    }
+    else if (Status == Black_Win)
+    {
+        cout << "黑棋获胜！" << endl;
+    }
+    else if (Status == White_Win)
+    {
+        cout << "白棋获胜！" << endl;
+    }
+    else if (Status == Draw)
+    {
+        cout << "双方平局！" << endl;
+    }
 }
 
 void Game :: help (void)
