@@ -6,7 +6,7 @@
 #include "board.h"
 using namespace std;
 
-int main()
+int main (void)
 {
     // 设置控制台输出编码为 UTF-8
     SetConsoleOutputCP(CP_UTF8);
@@ -26,7 +26,7 @@ int main()
 
         switch (Command)
         {
-            case (int)Command::Start_Game :   // 开始游戏
+            case (int)Command::Start_Game1 :   // 双人对战
             {
                 game.select_boardsize();     // 让用户选择棋盘大小
                 game.clear();
@@ -87,6 +87,76 @@ int main()
                 }
                 break;
             }
+
+            case (int)Command::Start_Game2 :   // 人机对战
+            {
+                game.select_aimode();      // 选择模式（会设置 isAIMode = true, AI执白
+                game.clear();
+                game.select_boardsize();
+                game.clear();
+                game.start_newgame();
+                // 游戏循环需要修改：判断当前玩家是否是 AI，若是则自动落子
+                int row, col;
+                bool Game_Running = true;
+                game.display_board();
+                while (Game_Running)
+                {
+                    // 如果轮到 AI 下
+                    if (game.getAIMode() && game.get_currentplayer() == game.getAIColor())
+                    {
+                        // 稍微延时，让玩家看到思考过程
+                        this_thread::sleep_for(chrono::seconds(1));
+                        if (game.ai_move())
+                        {
+                            game.clear();
+                            cout << "AI 落子中..." << endl;
+                            this_thread::sleep_for(chrono::seconds(1));
+                            game.clear();
+                            game.display_board();
+                            if (game.get_status() != On_Going)
+                            {
+                                game.print_prompt();
+                                Game_Running = false;
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
+                        continue; // 跳过玩家输入
+                    }
+                    // 玩家落子部分（与双人对战相同）
+                    game.print_prompt();
+                    cin >> row >> col;
+                    if (row == -2 && col == -2)
+                    {
+                        game.clear();
+                        cout << "即将退回到游戏主菜单..." << endl;
+                        this_thread::sleep_for(chrono::seconds(3));
+                        Game_Running = false;
+                        break;
+                    }
+                    else if (game.player_move(row, col))
+                    {
+                        game.clear();
+                        cout << "落子成功！" << endl;
+                        this_thread::sleep_for(chrono::seconds(1));
+                        game.clear();
+                        game.display_board();
+                        if (game.get_status() != On_Going)
+                        {
+                            game.print_prompt();
+                            Game_Running = false;
+                        }
+                    }
+                    else
+                    {
+                        cout << "无效落子，请重新输入。" << endl;
+                    }
+                }
+                break;
+            }
+
             case (int)Command::Help :          // 游戏帮助
             {
                 game.help();                  // 显示帮助信息
@@ -106,6 +176,7 @@ int main()
                 }
                 break;
             }
+
             case (int)Command::Quit_Game :     // 退出游戏
             {
                 Running = false;
@@ -113,6 +184,7 @@ int main()
                 this_thread::sleep_for(chrono::seconds(3));
                 break;
             }
+
             default:                          // 无效菜单选项
             {
                 cout << endl << "输入有误，请重新输入： ";

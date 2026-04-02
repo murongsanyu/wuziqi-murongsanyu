@@ -11,23 +11,28 @@ Game::Game ()
     board.resize((int)Board_Size :: Large_Board);
     Undo_Cnt[0] = 0;
     Undo_Cnt[1] = 0;
+    IsAIMode = false;      // 默认双人
+    AIColor = White;       // 默认AI执白
 }
 
 Game::~Game () {}
 
 // 使用 ANSI 转义序列清屏：\033[2J 清屏，\033[1;1H 将光标移到左上角
+// 使用system("cls")实现控制台清屏
 void Game::clear (void) const
 {
-    cout << "\033[2J\033[1;1H";
+    //cout << "\033[2J\033[1;1H";
+    system("cls");
 }
 
 // 显示主菜单
 void Game::menu (void)
 {
     cout << "========== 五子棋游戏 ==========" << endl;
-    cout << "1. 开始双人对战" << endl;
-    cout << "2. 游戏帮助" << endl;
-    cout << "3. 退出游戏" << endl;
+    cout << "1. 双人对战" << endl;
+    cout << "2. 人机对战" << endl;
+    cout << "3. 游戏帮助" << endl;
+    cout << "4. 退出游戏" << endl;
     cout << "=================================" << endl;
     cout << "请选择: ";
 }
@@ -74,6 +79,13 @@ void Game::start_newgame (void)
     Undo_Cnt[1] = 0;
 }
 
+void Game::select_aimode (void)
+{
+    IsAIMode = true;
+    AIColor = White;     // AI 执白，玩家执黑
+    Current_Player = Black;     // 玩家先手
+}
+
 // 显示棋盘（委托给 board 对象）
 void Game::display_board (void) const
 {
@@ -85,9 +97,19 @@ void Game::print_prompt (void) const
 {
     if (Status == On_Going)
     {
-        cout << "当前玩家: " << (Current_Player == Black ? "黑棋(X)" : "白棋(O)") << endl;
-        cout << "输入落子坐标 (行 列)，或输入 -1 -1 悔棋，或输入 -2 -2 退出游戏" << endl;
-        cout << "请输入: ";
+        if (IsAIMode)
+        {
+            cout << "当前玩家: " << (Current_Player == Black ? "黑棋(X)" : "白棋(O)") << endl;
+            cout << "输入落子坐标 (行 列)，或输入 -2 -2 退出游戏" << endl;
+            cout << "请输入: ";
+        }
+        else
+        {
+            cout << "当前玩家: " << (Current_Player == Black ? "黑棋(X)" : "白棋(O)") << endl;
+            cout << "输入落子坐标 (行 列)，或输入 -1 -1 悔棋，或输入 -2 -2 退出游戏" << endl;
+            cout << "请输入: ";
+        }
+        
     }
     else if (Status == Black_Win)
     {
@@ -131,6 +153,40 @@ bool Game::player_move (int row, int col)
     if (Status == On_Going)
     {
         // 若游戏未结束，切换当前玩家
+        Current_Player = (Current_Player == Black) ? White : Black;
+    }
+    return true;
+}
+
+bool Game::ai_move (void)
+{
+    if (Status != On_Going) 
+    {
+        return false;
+    }
+    if (Current_Player != AIColor)
+    {
+        return false;    // 不该 AI 下
+    }
+
+    AI ai;
+    Step best = ai.get_bestmove(board, AIColor);
+    if (best.row == -1)
+    {
+        return false;   // 无空位
+    }
+
+    // 落子
+    if (!board.place_piece(best.row, best.col, AIColor))
+    {
+        return false;
+    }
+
+    // 检查胜负
+    check_gameover();
+    if (Status == On_Going)
+    {
+        // 切换玩家
         Current_Player = (Current_Player == Black) ? White : Black;
     }
     return true;
@@ -203,11 +259,12 @@ void Game::help (void)
     cout << "先将五颗棋子连成一线的一方获胜。\n";
     cout << "二、【游戏模式】\n";
     cout << "- 双人对战：两名玩家轮流操作，黑棋先下，白棋后下。\n";
+    cout << "- 人机对战: 玩家与AI轮流操作, 玩家作为黑棋先下, AI作为白棋后下。\n";
     cout << "三、【操作说明】\n";
     cout << "- 落子：输入棋盘坐标(行 列),例如“7 7”表示在第7行第7列落子。\n";
-    cout << "- 悔棋：输入“-1 -1”可撤销上一步落子(每次只能悔棋一步)。\n";
+    cout << "- 悔棋：输入“-1 -1”可撤销上一步落子(每次只能悔棋一步)(人机对战模式无法悔棋)。\n";
     cout << "- 退出对局：输入“-2 -2”可返回主菜单。\n";
-    cout << "- 所有坐标均从0开始,范围0~14(15x15棋盘)。\n";
+    cout << "- 所有坐标均从0开始,范围0~14(如15x15棋盘)。\n";
     cout << "四、【棋盘显示说明】\n";
     cout << "- 空位显示为“.” \n- 黑棋显示为“X”\n- 白棋显示为“O”\n";
     cout << "- 行号和列号标注在棋盘四周，方便定位。\n";
@@ -220,11 +277,12 @@ void Game::help (void)
     cout << "六、【注意事项】\n";
     cout << "- 输入坐标时请用空格分隔,例如: 5 8\n";
     cout << "- 若输入无效坐标（越界或已有棋子），程序会提示重新输入。\n";
-    cout << "- 游戏进行中随时可以悔棋或退出。\n";
+    cout << "- 游戏进行中随时可以退出。\n";
     cout << "七、【开发信息】\n";
     cout << "版本: 1.0\n";
-    cout << "作者: 南京理工大学2025级物理学院C++课程设计小组: \n";
+    cout << "作者: 南京理工大学2025级物理学院C++课程设计小组:翁翊翾， \n";
     cout << "日期: 2026年3月\n";
     cout << "========================================" << endl;
     cout << "输入0返回主菜单..." << endl;
+    cout << "请输入：";
 }

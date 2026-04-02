@@ -15,11 +15,10 @@ enum class Board_Size
 enum class Command
 {
     Return_Menu = 0,    // 返回主菜单
-    Start_Game = 1,     // 开始游戏
-    Help = 2,           // 游戏帮助
-    Quit_Game = 3,      // 退出游戏
-    Move = 4,           // 落子（预留）
-    Give_Up = 5,        // 认输（预留）
+    Start_Game1 = 1,    // 开始双人对战
+    Start_Game2 = 2,    // 开始人机对战
+    Help = 3,           // 游戏帮助
+    Quit_Game = 4,      // 退出游戏
 };
 
 // 棋子状态（普通枚举，因为与棋盘交互频繁，使用简短的枚举值）
