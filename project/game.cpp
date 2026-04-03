@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <fstream>
 #include "game.h"
 using namespace std;
 
@@ -31,10 +32,11 @@ void Game::menu (void)
     cout << "========== 五子棋游戏 ==========" << endl;
     cout << "1. 双人对战" << endl;
     cout << "2. 人机对战" << endl;
-    cout << "3. 游戏帮助" << endl;
-    cout << "4. 退出游戏" << endl;
+    cout << "3. 加载存档" << endl;
+    cout << "4. 游戏帮助" << endl;
+    cout << "5. 退出游戏" << endl;
     cout << "=================================" << endl;
-    cout << "请选择: ";
+    cout << "请选择(输入对应的数字): ";
 }
 
 // 让用户选择棋盘大小，并存入 BoardSize 成员
@@ -79,6 +81,7 @@ void Game::start_newgame (void)
     Undo_Cnt[1] = 0;
 }
 
+// 选择人机对战模式
 void Game::select_aimode (void)
 {
     IsAIMode = true;
@@ -217,6 +220,108 @@ bool Game::undo_move (void)
         }
     }
     return false;
+}
+
+// 保存游戏到文件
+bool Game::save_game (const string& filename) const
+{
+    ofstream ofs(filename, ios::binary);
+    if (!ofs.is_open())
+    {
+        return false;
+    }
+
+    // 保存棋盘大小
+    int size = board.get_size();
+    ofs.write(reinterpret_cast <const char*> (&size), sizeof(size));
+
+    // 保存棋盘数据
+    for (int i = 0 ; i < size ; i ++)
+    {
+        for (int j = 0 ; j < size ; j ++)
+        {
+            int value = board.get_chess(i, j);
+            ofs.write(reinterpret_cast <const char*> (&value), sizeof(value));
+        }
+    }
+
+    // 保存当前玩家、游戏状态、棋盘大小（再次确认）、悔棋次数、AI模式、AI颜色
+    int cur = Current_Player;
+    int stat = Status;
+    int bs = BoardSize;
+    int undo0 = Undo_Cnt[0], undo1 = Undo_Cnt[1];
+    int AiMode = IsAIMode ? 1 : 0;
+    int AiCol = AIColor;
+
+    ofs.write(reinterpret_cast <const char*> (&cur), sizeof(cur));
+    ofs.write(reinterpret_cast <const char*> (&stat), sizeof(stat));
+    ofs.write(reinterpret_cast <const char*> (&bs), sizeof(bs));
+    ofs.write(reinterpret_cast <const char*> (&undo0), sizeof(undo0));
+    ofs.write(reinterpret_cast <const char*> (&undo1), sizeof(undo1));
+    ofs.write(reinterpret_cast <const char*> (&AiMode), sizeof(AiMode));
+    ofs.write(reinterpret_cast <const char*> (&AiCol), sizeof(AiCol));
+
+    // 注意：历史栈不保存，加载后无法悔棋之前的步数
+    ofs.close();
+    return true;
+}
+
+// 从文件中加载游戏
+bool Game::load_game (const string& filename)
+{
+    ifstream ifs(filename, ios::binary);
+    if (!ifs.is_open())
+    {
+        return false;
+    }
+
+    int size;
+    ifs.read(reinterpret_cast <char*> (&size), sizeof(size));
+    if (size <= 0)
+    {
+        return false;
+    }
+
+    // 重新调整棋盘大小
+    BoardSize = size;
+    board.resize(size);
+
+    // 读取棋盘数据
+    for (int i = 0; i < size; ++i)
+    {
+        for (int j = 0; j < size; ++j)
+        {
+            int value;
+            ifs.read(reinterpret_cast <char*> (&value), sizeof(value));
+            if (value != Empty && value != Black && value != White)
+            {
+                return false;
+            }
+            board.set_chess(i, j, static_cast <Chess_Type> (value));
+        }
+    }
+
+    // 读取其他状态
+    int cur, stat, bs, undo0, undo1, AiMode, AiCol;
+    ifs.read(reinterpret_cast <char*> (&cur), sizeof(cur));
+    ifs.read(reinterpret_cast <char*> (&stat), sizeof(stat));
+    ifs.read(reinterpret_cast <char*> (&bs), sizeof(bs));
+    ifs.read(reinterpret_cast <char*> (&undo0), sizeof(undo0));
+    ifs.read(reinterpret_cast <char*> (&undo1), sizeof(undo1));
+    ifs.read(reinterpret_cast <char*> (&AiMode), sizeof(AiMode));
+    ifs.read(reinterpret_cast <char*> (&AiCol), sizeof(AiCol));
+ 
+    Current_Player = static_cast <Chess_Type> (cur);
+    Status = static_cast <Game_Status> (stat);
+    BoardSize = bs;
+    Undo_Cnt[0] = undo0;
+    Undo_Cnt[1] = undo1;
+    IsAIMode = (AiMode != 0);
+    AIColor = static_cast <Chess_Type> (AiCol);
+
+    // 注意：历史栈被清空，悔棋将无法进行（或从零开始）
+    ifs.close();
+    return true;
 }
 
 // 更新游戏状态：检查黑胜、白胜、平局

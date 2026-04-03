@@ -197,6 +197,14 @@ void Board::display (void) const
     }
 }
 
+void Board::set_chess (int row, int col, Chess_Type player)
+{
+    if (row >= 0 && row < Size && col >= 0 && col < Size)
+    {
+       grid[row][col] = player;
+    }
+}
+
 int Board::get_size (void) const
 {
     return Size;

@@ -55,6 +55,9 @@ public:
     // 在控制台打印棋盘，带行列号
     void display (void) const;
 
+    // 设置指定位置的棋子（仅供加载使用）
+    void set_chess(int row, int col, Chess_Type player);
+
     // 获取当前棋盘大小
     int get_size (void) const;
 };

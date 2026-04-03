@@ -6,6 +6,8 @@
 #include "board.h"
 using namespace std;
 
+void game_run (Game & game);
+
 int main (void)
 {
     // 设置控制台输出编码为 UTF-8
@@ -26,140 +28,51 @@ int main (void)
 
         switch (Command)
         {
-            case (int)Command::Start_Game1 :   // 双人对战
+            case (int)Command::Start_Game1 :    // 双人对战
             {
                 game.select_boardsize();     // 让用户选择棋盘大小
                 game.clear();
                 game.start_newgame();        // 初始化游戏
 
-                int row = 0, col = 0;
-                bool Game_Running = true;
-                game.display_board();        // 显示空棋盘
+                game_run(game);        //统一调用循环
 
-                while (Game_Running)
-                {
-                    game.print_prompt();     // 提示当前玩家
-                    cin >> row >> col;       // 读取落子坐标
-
-                    if (row == -1 && col == -1)   // 悔棋指令
-                    {
-                        if (game.undo_move())
-                        {
-                            game.clear();
-                            cout << "悔棋成功！" << endl;
-                            this_thread::sleep_for(chrono::seconds(1));     // 显示1秒
-                            game.clear();
-                            game.display_board();   // 显示悔棋后的棋盘
-                        }
-                        else
-                        {
-                            cout << "悔棋失败，没有可撤销的步骤。\n";
-                        }
-                        continue;   // 跳过后续落子处理
-                    }
-                    else if (row == -2 && col == -2)   // 退出对局指令
-                    {
-                        game.clear();
-                        cout << "即将退回到游戏主菜单..." << endl;
-                        this_thread::sleep_for(chrono::seconds(3));
-                        Game_Running = false;
-                        break;
-                    }
-                    else if (game.player_move(row, col))   // 尝试落子
-                    {
-                        game.clear();
-                        cout << "落子成功！" << endl;
-                        this_thread::sleep_for(chrono::seconds(1));
-                        game.clear();
-                        game.display_board();   // 显示落子后的棋盘
-
-                        // 检查游戏是否结束
-                        if (game.get_status() != Game_Status::On_Going)
-                        {
-                            game.print_prompt();   // 显示胜利/平局信息
-                            Game_Running = false;
-                        }
-                    }
-                    else
-                    {
-                        cout << "无效输入，请重新输入。" << endl;
-                    }
-                }
                 break;
             }
 
-            case (int)Command::Start_Game2 :   // 人机对战
+            case (int)Command::Start_Game2 :    // 人机对战
             {
                 game.select_aimode();      // 选择模式（会设置 isAIMode = true, AI执白
                 game.clear();
                 game.select_boardsize();
                 game.clear();
                 game.start_newgame();
-                // 游戏循环需要修改：判断当前玩家是否是 AI，若是则自动落子
-                int row, col;
-                bool Game_Running = true;
-                game.display_board();
-                while (Game_Running)
+                
+                game_run(game);
+
+                break;
+            }
+
+            case (int)Command::Load_Game:       // 加载存档
+            {
+                if (game.load_game())
                 {
-                    // 如果轮到 AI 下
-                    if (game.getAIMode() && game.get_currentplayer() == game.getAIColor())
-                    {
-                        // 稍微延时，让玩家看到思考过程
-                        this_thread::sleep_for(chrono::seconds(1));
-                        if (game.ai_move())
-                        {
-                            game.clear();
-                            cout << "AI 落子中..." << endl;
-                            this_thread::sleep_for(chrono::seconds(1));
-                            game.clear();
-                            game.display_board();
-                            if (game.get_status() != On_Going)
-                            {
-                                game.print_prompt();
-                                Game_Running = false;
-                            }
-                        }
-                        else
-                        {
-                            break;
-                        }
-                        continue; // 跳过玩家输入
-                    }
-                    // 玩家落子部分（与双人对战相同）
-                    game.print_prompt();
-                    cin >> row >> col;
-                    if (row == -2 && col == -2)
-                    {
-                        game.clear();
-                        cout << "即将退回到游戏主菜单..." << endl;
-                        this_thread::sleep_for(chrono::seconds(3));
-                        Game_Running = false;
-                        break;
-                    }
-                    else if (game.player_move(row, col))
-                    {
-                        game.clear();
-                        cout << "落子成功！" << endl;
-                        this_thread::sleep_for(chrono::seconds(1));
-                        game.clear();
-                        game.display_board();
-                        if (game.get_status() != On_Going)
-                        {
-                            game.print_prompt();
-                            Game_Running = false;
-                        }
-                    }
-                    else
-                    {
-                        cout << "无效落子，请重新输入。" << endl;
-                    }
+                    cout << "加载成功！" << endl;
+                    this_thread::sleep_for(chrono::seconds(2));
+                    game.clear();
+                    game_run(game);       // 调用统一循环
                 }
+                else
+                {
+                    cout << "加载失败，没有找到存档文件或文件损坏。" << endl;
+                    this_thread::sleep_for(chrono::seconds(3));
+                }
+
                 break;
             }
 
             case (int)Command::Help :          // 游戏帮助
             {
-                game.help();                  // 显示帮助信息
+                game.help();          // 显示帮助信息
                 // 等待用户输入0返回主菜单
                 while (true)
                 {
@@ -194,4 +107,106 @@ int main (void)
     }
 
     return 0;
+}
+
+// 游戏主循环，适用于双人对战、人机对战、加载存档
+void game_run (Game & game)
+{
+    bool GameRunning = true;
+    game.display_board();
+
+    while (GameRunning)
+    {
+        // 如果是人机模式且轮到 AI 下棋
+        if (game.getAIMode() && game.get_currentplayer() == game.getAIColor())
+        {
+            this_thread::sleep_for(chrono::seconds(1));  // 模拟思考
+            if (game.ai_move())
+            {
+                game.clear();
+                cout << "AI 落子中..." << endl;
+                this_thread::sleep_for(chrono::seconds(1));
+                game.clear();
+                game.display_board();
+                if (game.get_status() != On_Going)
+                {
+                    game.print_prompt();
+                    GameRunning = false;
+                }
+            }
+            else
+            {
+                break;  // 无空位，游戏结束
+            }
+            continue;
+        }
+
+        // 玩家回合
+        game.print_prompt();
+        int row, col;
+        cin >> row >> col;
+
+        // 退出对局（-2 -2）
+        if (row == -2 && col == -2)
+        {
+            string ch;
+            game.clear();
+            cout << "是否保存游戏？" << endl;
+            cout << "请输入 “是” 或 “否” :  ";
+            cin >> ch;
+            if (ch == "是")
+            {
+                if (game.save_game())
+                {
+                    game.clear();
+                    cout << "保存成功！" << endl;
+                }
+                else
+                {
+                    cout << "保存失败！" << endl;
+                }
+            }
+            cout << "即将退回到游戏主菜单..." << endl;
+            this_thread::sleep_for(chrono::seconds(3));
+            GameRunning = false;
+            break;
+        }
+
+        // 悔棋（仅双人模式支持，输入 -1 -1）
+        if (!game.getAIMode() && row == -1 && col == -1)
+        {
+            if (game.undo_move())
+            {
+                game.clear();
+                cout << "悔棋成功！" << endl;
+                this_thread::sleep_for(chrono::seconds(1));
+                game.clear();
+                game.display_board();
+            }
+            else
+            {
+                cout << "悔棋失败，没有可撤销的步骤。" << endl;
+            }
+            continue;
+        }
+
+        // 正常落子
+        if (game.player_move(row, col))
+        {
+            game.clear();
+            cout << "落子成功！" << endl;
+            this_thread::sleep_for(chrono::seconds(1));
+            game.clear();
+            game.display_board();
+            if (game.get_status() != On_Going)
+            {
+                game.print_prompt();
+                GameRunning = false;
+            }
+        }
+        else
+        {
+            cout << "无效落子，请重新输入。" << endl;
+        }
+    }
 }

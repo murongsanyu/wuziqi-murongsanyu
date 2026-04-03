@@ -1,6 +1,7 @@
 #ifndef __GAME_H
 #define __GAME_H
 
+#include <fstream>
 #include "dictionary.h"
 #include "board.h"
 #include "ai.h"
@@ -32,7 +33,7 @@ public:
     // 开始新游戏（根据当前 BoardSize 重置棋盘、玩家、状态、悔棋次数）
     void start_newgame (void);
 
-    // 让用户选择双人/人机，并设置 AI 颜色
+    // 选择人机对战模式，并设置 AI 颜色
     void select_aimode (void);
 
     // 显示当前棋盘（委托给 board.display()）
@@ -53,6 +54,12 @@ public:
     // 如果符合条件（游戏进行中、有历史记录、悔棋次数未超限），撤销上一步并切换当前玩家
     // 返回是否成功悔棋
     bool undo_move (void);
+
+    // 保存游戏到文件
+    bool save_game (const std::string & filename = "save.dat") const;
+
+    // 从文件加载游戏
+    bool load_game (const std::string & filename = "save.dat");
 
     // 检查游戏是否结束，更新 Status
     void check_gameover (void);
