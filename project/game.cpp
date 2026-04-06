@@ -9,7 +9,7 @@ Game::Game ()
 {
     Current_Player = Black;
     Status = On_Going;
-    board.resize((int)Board_Size :: Large_Board);
+    BoardSize =  (int)Board_Size :: Large_Board;
     Undo_Cnt[0] = 0;
     Undo_Cnt[1] = 0;
     IsAIMode = false;      // 默认双人
@@ -81,6 +81,20 @@ void Game::start_newgame (void)
     Undo_Cnt[1] = 0;
 }
 
+void Game::reset_game(void)
+{
+    // 重新初始化棋盘（保留当前棋盘大小）
+    board.resize(BoardSize);
+    // 重置玩家为黑棋先手
+    Current_Player = Black;
+    // 重置游戏状态
+    Status = On_Going;
+    // 清空悔棋次数
+    Undo_Cnt[0] = 0;
+    Undo_Cnt[1] = 0;
+    // 注意：IsAIMode 和 AIColor 保持不变
+}
+
 // 选择人机对战模式
 void Game::select_aimode (void)
 {
@@ -98,18 +112,19 @@ void Game::display_board (void) const
 // 打印提示信息：根据游戏状态输出相应内容
 void Game::print_prompt (void) const
 {
+    cout << "黑棋剩余悔棋次数：" << 2 - Undo_Cnt[0] << "，白棋剩余悔棋次数：" << 2 - Undo_Cnt[1] << endl;
     if (Status == On_Going)
     {
         if (IsAIMode)
         {
             cout << "当前玩家: " << (Current_Player == Black ? "黑棋(X)" : "白棋(O)") << endl;
-            cout << "输入落子坐标 (行 列)，或输入 -2 -2 退出游戏" << endl;
+            cout << "输入落子坐标 (行 列)，或输入 -2 -2 退出游戏，或 -3 -3 重新开始" << endl;
             cout << "请输入: ";
         }
         else
         {
             cout << "当前玩家: " << (Current_Player == Black ? "黑棋(X)" : "白棋(O)") << endl;
-            cout << "输入落子坐标 (行 列)，或输入 -1 -1 悔棋，或输入 -2 -2 退出游戏" << endl;
+            cout << "输入落子坐标 (行 列)，或输入 -1 -1 悔棋，或输入 -2 -2 退出游戏，或 -3 -3 重新开始" << endl;
             cout << "请输入: ";
         }
         
@@ -117,21 +132,21 @@ void Game::print_prompt (void) const
     else if (Status == Black_Win)
     {
         cout << "黑棋获胜！" << endl;
-        cout << "即将跳转至主菜单..." << endl;
+        cout << "\n即将跳转至主菜单..." << endl;
         this_thread :: sleep_for(chrono :: seconds(5));
         clear();
     }
     else if (Status == White_Win)
     {
         cout << "白棋获胜！" << endl;
-        cout << "即将跳转至主菜单..." << endl;
+        cout << "\n即将跳转至主菜单..." << endl;
         this_thread :: sleep_for(chrono :: seconds(5));
         clear();
     }
     else if (Status == Draw)
     {
         cout << "双方平局！" << endl;
-        cout << "即将跳转至主菜单..." << endl;
+        cout << "\n即将跳转至主菜单..." << endl;
         this_thread :: sleep_for(chrono :: seconds(5));
         clear();
     }

@@ -144,7 +144,15 @@ void game_run (Game & game)
         // 玩家回合
         game.print_prompt();
         int row, col;
-        cin >> row >> col;
+
+        // 判断输入是否符合规范
+        if (!(cin >> row >> col))
+        {
+            cin.clear();
+            cin.ignore(numeric_limits <streamsize> ::max(), '\n');
+            cout << "输入无效，请重新输入两个由空格隔开的整数！" << endl;
+            continue;
+        }
 
         // 退出对局（-2 -2）
         if (row == -2 && col == -2)
@@ -170,6 +178,18 @@ void game_run (Game & game)
             this_thread::sleep_for(chrono::seconds(3));
             GameRunning = false;
             break;
+        }
+
+        // 重置对局（-3 -3）
+        if (row == -3 && col == -3)
+        {
+            game.reset_game();
+            game.clear();
+            cout << "对局已重置！" << endl;
+            this_thread::sleep_for(chrono::seconds(2));
+            game.clear();
+            game.display_board();
+            continue;   // 跳过后续落子逻辑，重新进入循环
         }
 
         // 悔棋（仅双人模式支持，输入 -1 -1）
@@ -203,10 +223,6 @@ void game_run (Game & game)
                 game.print_prompt();
                 GameRunning = false;
             }
-        }
-        else
-        {
-            cout << "无效落子，请重新输入。" << endl;
         }
     }
 }

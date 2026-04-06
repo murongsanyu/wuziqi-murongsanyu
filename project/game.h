@@ -33,6 +33,9 @@ public:
     // 开始新游戏（根据当前 BoardSize 重置棋盘、玩家、状态、悔棋次数）
     void start_newgame (void);
 
+    // 重置当前对局（清空棋盘，悔棋次数归零，黑棋先手）
+    void reset_game(void);
+
     // 选择人机对战模式，并设置 AI 颜色
     void select_aimode (void);
 
